@@ -1,47 +1,6 @@
+#include "redBlackTree.h"
 #include <iostream>
-#include <stack>
 using namespace std;
-
-enum Color
-{
-	red,
-	black,
-};
-
-struct redBlackTreeNode
-{
-	Color color;
-	int value;
-	redBlackTreeNode *leftChild, *rightChild, *father;
-};
-
-class redBlackTree
-{
-public:
-	redBlackTree();
-	~redBlackTree();
-	void addAnElement(int v);
-	void deleteAnElement(int v);
-	void deleteAllElement(redBlackTreeNode *(&pRoot));
-	redBlackTreeNode* find(int v);
-	void print();
-	bool check();
-private:
-	redBlackTreeNode *root;
-
-	void addAnElement(redBlackTreeNode *node, redBlackTreeNode * pNode);
-	redBlackTreeNode* findAnElement(int key, redBlackTreeNode *pNode);
-	void fixUp(redBlackTreeNode *node);
-	void leftRotate(redBlackTreeNode *node);
-	void rightRotate(redBlackTreeNode *node);
-	Color getUncleColor(redBlackTreeNode *node);
-	void print(redBlackTreeNode *node);
-	bool check(redBlackTreeNode *root, int BlackNum, int CurBlackNum);
-	redBlackTreeNode* getRealDeletedNode(redBlackTreeNode* deletedItem);
-	redBlackTreeNode* getMaxNode(redBlackTreeNode *pNode);
-	redBlackTreeNode* getNewNode(redBlackTreeNode *pNode);
-	void deleteFix(redBlackTreeNode *pNode, redBlackTreeNode *father);
-};
 
 redBlackTree::redBlackTree()
 {
@@ -49,8 +8,92 @@ redBlackTree::redBlackTree()
 }
 redBlackTree::~redBlackTree()
 {
-	deleteAllElement(root);
+	deleteAllElements(root);
 }
+void redBlackTree::add(int v)
+{
+	if (root == NULL)
+	{
+		root = new redBlackTreeNode;
+		root->color = black;
+		root->value = v;
+		root->leftChild = NULL;
+		root->rightChild = NULL;
+		root->father = NULL;
+	}
+	else
+	{
+		redBlackTreeNode *newNode = new redBlackTreeNode;
+		newNode->color = red;
+		newNode->value = v;
+		newNode->leftChild = NULL;
+		newNode->rightChild = NULL;
+		addAnElement(newNode, root);
+	}
+}
+void redBlackTree::erase(int value)
+{
+	redBlackTreeNode *deletedItem = find(value);
+	if (deletedItem == NULL)
+	{
+		cout << "The value is not in the tree." << endl;
+		return;
+	}
+	redBlackTreeNode *realDeletedNode = getRealDeletedNode(deletedItem);
+	deletedItem->value = realDeletedNode != deletedItem ? realDeletedNode->value : deletedItem->value;
+	redBlackTreeNode *father = realDeletedNode->father;
+	redBlackTreeNode *newNode = getNewNode(realDeletedNode);
+
+	//Delete the Node.
+	if (newNode != NULL)
+		newNode->father = father;
+	if (father == NULL)
+	{
+		root = newNode;
+	}
+	else
+	{
+		if (father->leftChild == realDeletedNode)
+			father->leftChild = newNode;
+		else if (father->rightChild == realDeletedNode)
+			father->rightChild = newNode;
+	}
+	if (realDeletedNode->color != red)
+		deleteFix(newNode, father);
+	delete realDeletedNode;
+}
+void redBlackTree::clear()
+{
+	deleteAllElements(root);
+}
+redBlackTreeNode* redBlackTree::find(int v)
+{
+	return findAnElement(v, root);
+}
+void redBlackTree::print()
+{
+	print(root);
+	cout << endl;
+}
+bool redBlackTree::check()
+{
+	if (root == NULL)
+		return true;
+	if (root->color == red)
+		return false;
+	int blackCount = 0;
+	int curBlackCount = 0;
+	redBlackTreeNode *pNode = root;
+	while (pNode != NULL)
+	{
+		if (pNode->color == black)
+			++blackCount;
+		pNode = pNode->leftChild;
+	}
+	return check(root, blackCount, curBlackCount);
+}
+
+
 void redBlackTree::leftRotate(redBlackTreeNode *node)
 {
 	redBlackTreeNode *rNode = node->rightChild;
@@ -120,27 +163,6 @@ void redBlackTree::rightRotate(redBlackTreeNode *node)
 	else
 	{
 		root = lNode;
-	}
-}
-void redBlackTree::addAnElement(int v)
-{
-	if (root == NULL)
-	{
-		root = new redBlackTreeNode;
-		root->color = black;
-		root->value = v;
-		root->leftChild = NULL;
-		root->rightChild = NULL;
-		root->father = NULL;
-	}
-	else
-	{
-		redBlackTreeNode *newNode = new redBlackTreeNode;
-		newNode->color = red;
-		newNode->value = v;
-		newNode->leftChild = NULL;
-		newNode->rightChild = NULL;
-		addAnElement(newNode, root);
 	}
 }
 void redBlackTree::addAnElement(redBlackTreeNode * node, redBlackTreeNode * pNode)
@@ -254,55 +276,33 @@ redBlackTreeNode* redBlackTree::findAnElement(int key, redBlackTreeNode *pNode)
 	else
 		return findAnElement(key, pNode->rightChild);
 }
-redBlackTreeNode* redBlackTree::find(int v)
-{
-	return findAnElement(v, root);
-}
-void redBlackTree::deleteAllElement(redBlackTreeNode *(&pRoot))
+
+void redBlackTree::deleteAllElements(redBlackTreeNode *(&pRoot))
 {
 	if (pRoot == NULL)
 		return;
 	if (pRoot->leftChild != NULL)
 	{
-		deleteAllElement(pRoot->leftChild);
+		deleteAllElements(pRoot->leftChild);
 	}
 	if (pRoot->rightChild != NULL)
 	{
-		deleteAllElement(pRoot->rightChild);
+		deleteAllElements(pRoot->rightChild);
 	}
 
 	delete pRoot;
 	pRoot = NULL;
 }
-void redBlackTree::print()
-{
-	print(root);
-	cout << endl;
-}
 void redBlackTree::print(redBlackTreeNode *node)
 {
 	if (node == NULL)
+	{
+		cout << "It is an empty tree!" << endl;
 		return;
+	}
 	print(node->leftChild);
 	cout << node->value << " ";
 	print(node->rightChild);
-}
-bool redBlackTree::check()
-{
-	if (root == NULL)
-		return true;
-	if (root->color == red)
-		return false;
-	int blackCount = 0;
-	int curBlackCount = 0;
-	redBlackTreeNode *pNode = root;
-	while (pNode != NULL)
-	{
-		if (pNode->color == black)
-			++blackCount;
-		pNode = pNode->leftChild;
-	}
-	return check(root, blackCount, curBlackCount);
 }
 bool redBlackTree::check(redBlackTreeNode *root, int BlackNum, int CurBlackNum)
 {
@@ -321,37 +321,6 @@ bool redBlackTree::check(redBlackTreeNode *root, int BlackNum, int CurBlackNum)
 	}
 	return check(root->leftChild, BlackNum, CurBlackNum)
 		&& check(root->rightChild, BlackNum, CurBlackNum);//进行左右递归  
-}
-void redBlackTree::deleteAnElement(int value)
-{
-	redBlackTreeNode *deletedItem = find(value);
-	if (deletedItem == NULL )
-	{
-		cout << "The value is not in the tree." << endl;
-		return;
-	}
-	redBlackTreeNode *realDeletedNode = getRealDeletedNode(deletedItem);
-	deletedItem->value = realDeletedNode != deletedItem ? realDeletedNode->value : deletedItem->value;
-	redBlackTreeNode *father = realDeletedNode->father;
-	redBlackTreeNode *newNode = getNewNode(realDeletedNode);
-
-	//Delete the Node.
-	if (newNode != NULL)
-		newNode->father = father;
-	if (father == NULL)
-	{
-		root = newNode;
-	}
-	else
-	{
-		if (father->leftChild == realDeletedNode)
-			father->leftChild = newNode;
-		else if (father->rightChild == realDeletedNode)
-			father->rightChild = newNode;
-	}
-	if(realDeletedNode->color != red)
-		deleteFix(newNode, father);
-	delete realDeletedNode;
 }
 void redBlackTree::deleteFix(redBlackTreeNode *newNode, redBlackTreeNode * father)
 {
@@ -486,36 +455,4 @@ redBlackTreeNode* redBlackTree::getNewNode(redBlackTreeNode *pNode)
 	return pNode->leftChild == NULL ? pNode->rightChild : pNode->leftChild;
 }
 
-int main()
-{
-	redBlackTree tree;
-	int n;
-	cout << "Please enter the number of the tree nodes: ";
-	cin >> n;
-	cout << "Please enter the tree nodes' value: " << endl;
-	for (int i = 0; i < n; ++i)
-	{
-		int x;
-		cin >> x;
-		tree.addAnElement(x);
-	}
-	tree.print();
-	if (tree.check())
-		cout << "It is a red black tree!" << endl;
-	else
-		cout << "It is not a red black tree!" << endl;
-	
-	cout << "Please enter the number of delete nodes: ";
-	cin >> n;
-	cout << "Please enter the deleted value: " << endl;
-	for (int i = 0; i < n; ++i)
-	{
-		int x;
-		cin >> x;
-		tree.deleteAnElement(x);
-		if (!tree.check())
-			cout << "ERROR! It is not a red black tree!" << endl;
-	}
-	tree.print();
-	return 0;
-}
+
